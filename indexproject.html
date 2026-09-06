@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProjTrack — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F5FC;
+    --surface:#FFFFFF;
+    --surface-soft:#F1F1FC;
+    --border:#E7E7F5;
+    --text:#181A2A;
+    --text-dim:#6B6E85;
+    --text-faint:#A2A5B8;
+    --violet:#6D4CFA;
+    --violet-2:#8F6BFF;
+    --pink:#FF4FA0;
+    --mint:#12CB94;
+    --mint-soft:#DCFBF1;
+    --amber:#FFAA1D;
+    --amber-soft:#FFF1D6;
+    --coral:#FF5468;
+    --coral-soft:#FFE3E6;
+    --slate:#8489C7;
+    --slate-soft:#EDEEFA;
+    --shadow: 0 8px 24px rgba(76,60,180,.08);
+    --shadow-sm: 0 2px 8px rgba(76,60,180,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+
+  .main{max-width:1180px;margin:0 auto;padding:32px 32px 60px;}
+
+  .topbar{
+    display:flex;justify-content:space-between;align-items:flex-start;
+    flex-wrap:wrap;gap:14px;margin-bottom:22px;
+  }
+  .topbar h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:26px;font-weight:700;margin:0;letter-spacing:-.01em;
+  }
+  .sync-pill{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:999px;padding:7px 14px;font-size:12.5px;color:var(--text-dim);
+    box-shadow:var(--shadow-sm);
+  }
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--slate);}
+  .sync-pill.live .sync-dot{background:var(--mint);box-shadow:0 0 0 3px var(--mint-soft);}
+  .sync-pill.offline .sync-dot{background:var(--coral);box-shadow:0 0 0 3px var(--coral-soft);}
+  .refresh-btn{
+    background:linear-gradient(135deg,var(--violet),var(--pink));
+    border:none;color:#fff;font-family:'Inter',sans-serif;font-weight:600;
+    font-size:13px;padding:9px 16px;border-radius:10px;cursor:pointer;
+    box-shadow:0 6px 16px rgba(109,76,250,.28);
+  }
+  .refresh-btn:disabled{opacity:.55;cursor:default;}
+
+  .alert{
+    border:1px solid rgba(255,84,104,.25);background:var(--coral-soft);color:#B4283C;
+    font-size:12.5px;line-height:1.6;padding:12px 16px;border-radius:12px;margin-bottom:18px;
+  }
+  .toast-wrap{position:fixed;bottom:22px;right:22px;display:flex;flex-direction:column;gap:8px;z-index:50;}
+  .toast{
+    background:var(--text);color:#fff;font-size:12.5px;padding:10px 16px;border-radius:10px;
+    box-shadow:0 10px 24px rgba(0,0,0,.2);max-width:300px;animation:toastin .18s ease-out;
+  }
+  .toast.ok{background:#0F9D6E;}
+  .toast.warn{background:#B87200;}
+  .toast.error{background:#C22A3E;}
+  @keyframes toastin{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ---------- Stat cards ---------- */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;}
+  .stat{
+    background:var(--surface);border-radius:16px;padding:18px 18px 16px;
+    box-shadow:var(--shadow-sm);border:1px solid var(--border);position:relative;overflow:hidden;
+  }
+  .stat::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;}
+  .stat.total::before{background:linear-gradient(90deg,var(--violet),var(--violet-2));}
+  .stat.done::before{background:var(--mint);}
+  .stat.overdue::before{background:var(--coral);}
+  .stat.due::before{background:var(--amber);}
+  .stat.upcoming::before{background:var(--slate);}
+  .stat .num{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;line-height:1;margin-bottom:6px;}
+  .stat .lbl{font-size:12px;color:var(--text-dim);font-weight:500;}
+  .stat.total .num{color:var(--violet);}
+  .stat.done .num{color:var(--mint);}
+  .stat.overdue .num{color:var(--coral);}
+  .stat.due .num{color:var(--amber);}
+  .stat.upcoming .num{color:var(--slate);}
+
+  /* ---------- Controls ---------- */
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+  .controls .grow{flex:1;min-width:180px;}
+  input[type=text],select{
+    background:var(--surface);border:1px solid var(--border);color:var(--text);
+    font-family:'Inter',sans-serif;font-size:13.5px;padding:10px 13px;border-radius:10px;
+    outline:none;width:100%;
+  }
+  select{width:auto;cursor:pointer;}
+  input[type=text]:focus,select:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(109,76,250,.12);}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--text-dim);margin-bottom:18px;font-weight:500;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.done{background:var(--mint);}
+  .dot.due{background:var(--amber);}
+  .dot.overdue{background:var(--coral);}
+  .dot.upcoming{background:var(--slate);}
+
+  /* ---------- Board (timeline grid) ---------- */
+  .board{border:1px solid var(--border);border-radius:18px;overflow:auto;background:var(--surface);box-shadow:var(--shadow-sm);}
+  table{border-collapse:collapse;width:100%;min-width:960px;}
+  thead th{
+    position:sticky;top:0;background:var(--surface-soft);z-index:2;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--text-dim);
+    text-align:center;padding:12px 6px;border-bottom:1px solid var(--border);white-space:nowrap;
+  }
+  thead th.week-col.current{color:var(--violet);}
+  thead th:first-child{text-align:left;padding-left:20px;position:sticky;left:0;z-index:3;background:var(--surface-soft);min-width:220px;}
+  thead th.status-col{text-align:left;min-width:150px;}
+  tbody td{padding:10px 6px;text-align:center;border-bottom:1px solid var(--surface-soft);font-size:13px;}
+  tbody td:first-child{text-align:left;padding-left:20px;position:sticky;left:0;background:var(--surface);color:var(--text);white-space:nowrap;font-weight:500;}
+  tr.group-row td{
+    background:var(--surface-soft);font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13.5px;
+    padding:12px 6px 12px 20px;text-align:left;color:var(--violet);border-bottom:1px solid var(--border);
+  }
+  tr.group-row td .mini{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:11.5px;color:var(--text-dim);margin-left:10px;}
+  tr.row:hover td{background:#FAFAFF;}
+  td.week-col.current{background:rgba(109,76,250,.05);}
+  .mark{width:10px;height:10px;border-radius:50%;display:inline-block;margin:0 auto;}
+  .mark.done{background:var(--mint);}
+  .mark.due{background:var(--amber);box-shadow:0 0 0 4px var(--amber-soft);}
+  .mark.overdue{background:var(--coral);box-shadow:0 0 0 4px var(--coral-soft);}
+  .mark.upcoming{background:var(--slate);}
+  .pill{display:inline-block;font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;}
+  .pill.done{background:var(--mint-soft);color:#0B8F65;}
+  .pill.due{background:var(--amber-soft);color:#B87200;}
+  .pill.overdue{background:var(--coral-soft);color:#C22A3E;}
+  .pill.upcoming{background:var(--slate-soft);color:#5257A0;}
+  .empty-state{padding:40px;text-align:center;color:var(--text-faint);font-size:13.5px;}
+
+  @media (max-width:860px){
+    .stats{grid-template-columns:repeat(2,1fr);}
+    .main{padding:20px 16px 50px;}
+  }
+</style>
+</head>
+<body>
+
+  <main class="main">
+
+    <div class="topbar">
+      <h1>Project Tracker</h1>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <span class="sync-pill" id="syncPill"><span class="sync-dot"></span><span id="syncText">Memuat…</span></span>
+        <button class="refresh-btn" id="refreshBtn1">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div id="alertBoxDash"></div>
+
+    <div class="stats" id="statStrip"></div>
+
+    <div class="controls">
+      <select id="weekRef"></select>
+      <select id="statusFilter">
+        <option value="all">Semua status</option>
+        <option value="done">Selesai</option>
+        <option value="due">Jatuh tempo minggu ini</option>
+        <option value="overdue">Terlambat</option>
+        <option value="upcoming">Akan datang</option>
+      </select>
+      <div class="grow"><input type="text" id="search" placeholder="Cari proyek atau action step…"></div>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot done"></span> Selesai</span>
+      <span><span class="dot due"></span> Jatuh tempo minggu ini</span>
+      <span><span class="dot overdue"></span> Terlambat</span>
+      <span><span class="dot upcoming"></span> Akan datang</span>
+    </div>
+
+    <div class="board"><table><thead><tr id="headRow"></tr></thead><tbody id="boardBody"></tbody></table></div>
+
+  </main>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+const SHEET_ID = "1CRVnuWMuBu1H6P77_5aXMQ-D_e4U0PUP";
+const PUBLISHED_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTQ-wDWwbi3QJU1LbbOdcGWPpBGljhWPnd7gqHWwUrMjOGWhdDptXf7g0Wv0VbDNQ/pub?output=csv";
+// Trimmed to just the published CSV endpoint (fastest, already confirmed valid)
+// tried directly, then through two CORS proxies. Kept short so a manual
+// Refresh click doesn't hang for a long time before falling back.
+const CSV_CANDIDATES = [
+  PUBLISHED_CSV_URL,
+  `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(PUBLISHED_CSV_URL)}`,
+  `https://api.allorigins.win/raw?url=${encodeURIComponent(PUBLISHED_CSV_URL)}`
+];
+
+const FALLBACK_WEEKS = ["Jul W1","Jul W2","Jul W3","Jul W4","Jul W5","Aug W1","Aug W2","Aug W3","Aug W4","Sep W1","Oct W4"];
+const FALLBACK_RAW = [
+["QRIS CPM","Dokumen Penunjukan",0,"Done"],["QRIS CPM","Draft FSD",0,"Done"],["QRIS CPM","Rapat FSD",1,"Done"],
+["QRIS CPM","Kick Off",1,"Done"],["QRIS CPM","SIT",2,"Planning"],["QRIS CPM","Usulan UAT",2,"Planning"],
+["QRIS CPM","UAT Selesai",4,"Planning"],["QRIS Tuntas","Draft FSD",1,"Done"],["QRIS Tuntas","Rapat FSD",1,"Done"],
+["QRIS Tuntas","UAT Transfer",6,"Planning"],["QRIS Tuntas","UAT Tartun OffUs",8,"Planning"],
+["QRIS Tuntas","UAT Tartun OnUs",9,"Planning"],["QRIS Tap","Dokumen Penunjukan",0,"Done"],
+["QRIS Tap","Draft FSD",5,"Planning"],["QRIS Tap","Rapat FSD",5,"Planning"],["QRIS Tap","UAT",10,"Planning"],
+["Enhancement OOB","UAT Ulang",3,"Planning"],["Enhancement OOB","Production",6,"Planning"],
+["VA Debit","SIT MPN",2,"Planning"],["VA Debit","UAT EDC",3,"Planning"],["VA Debit","Usulan UAT Kemenkeu",3,"Planning"],
+["CCW Issuer","Usulan UAT",1,"Planning"],["CCW Acquirer","Development",2,"Planning"],["CCW Acquirer","SIT",3,"Planning"],
+["CCW Acquirer","Usulan UAT",3,"Planning"],["CCW Acquirer","UAT",5,"Planning"],["Device ID","Development Otorisasi",1,"Done"],
+["Device ID","UAT",2,"Planning"],["Device ID","Production",3,"Planning"],["Registrasi MB eKYC","Rapat Flow Registrasi",2,"Done"],
+["CR KKI","UAT Perbaikan",2,"Done"],["CR KKI","Prod Perbaikan",3,"Planning"],["CR KKI","UAT Fitur",2,"Done"],
+["CR KKI","Prod Fitur",3,"Planning"],["Reporting Merchant (MDR)","UAT",1,"Done"],["Reporting Merchant (MDR)","Live",2,"Planning"],
+["OOB Nama Gadis Ibu Kandung","CR",1,"Done"],["OOB Nama Gadis Ibu Kandung","Konfirmasi PAC",1,"Done"],
+["OOB Nama Gadis Ibu Kandung","CR PAC",1,"Done"],["OOB Nama Gadis Ibu Kandung","Feedback PAC",1,"Planning"],
+["Registrasi Merchant","BRD ke DTI",1,"Done"],["Registrasi Merchant","BRD ke PAC",2,"Planning"],
+["Registrasi Merchant","Feedback PAC",3,"Planning"],["Settlement Otomatis","Analisis Skenario Settlement",1,"Planning"]
+];
+
+function toRecords(rawArr){
+  return rawArr.map((r,i)=>({project:r[0],step:r[1],weekIndex:r[2],status:r[3],row:i+2}));
+}
+
+let WEEKS = FALLBACK_WEEKS.slice();
+let DATA = toRecords(FALLBACK_RAW);
+let currentWeek = 9;
+let statusFilter = "all";
+let searchTerm = "";
+
+/* ---------- toast ---------- */
+function toast(msg, type){
+  const wrap = document.getElementById('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type||'ok');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(()=>el.remove(), 4200);
+}
+
+/* ---------- CSV parsing ---------- */
+function parseCSV(text){
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){ if(text[i+1] === '"'){ field+='"'; i++; } else { inQuotes=false; } }
+      else field += c;
+    } else {
+      if(c === '"') inQuotes = true;
+      else if(c === ','){ row.push(field); field=''; }
+      else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c === '\r'){ }
+      else field += c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(c => c && c.trim() !== ''));
+}
+
+function buildFromCSV(text){
+  const rows = parseCSV(text);
+  if(rows.length < 2) throw new Error('Sheet kosong atau format tidak dikenali');
+  const header = rows[0].map(h => (h||'').trim());
+  const statusColIdx = header.findIndex(h => h.toLowerCase() === 'status');
+  if(statusColIdx < 2) throw new Error('Kolom "Status" tidak ditemukan di header');
+  const weekHeaders = header.slice(2, statusColIdx).map(h => h.trim()).filter(Boolean);
+
+  const data = [];
+  let lastProject = '';
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    const projectCell = (r[0]||'').trim();
+    const step = (r[1]||'').trim();
+    if(!step) continue;
+    const project = projectCell || lastProject;
+    lastProject = project;
+    let weekIndex = null;
+    for(let w=0; w<weekHeaders.length; w++){
+      const cell = (r[2+w]||'').trim().toLowerCase();
+      if(cell === 'x'){ weekIndex = w; break; }
+    }
+    const status = (r[statusColIdx]||'').trim() || 'Planning';
+    data.push({project, step, weekIndex, status, row:i+1});
+  }
+  if(data.length === 0) throw new Error('Tidak ada baris data yang terbaca');
+  return { weeks: weekHeaders, data };
+}
+
+const MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function guessCurrentWeekIndex(weeks){
+  const today = new Date();
+  let bestIdx = 0, bestDate = null;
+  weeks.forEach((label, i)=>{
+    const m = label.match(/([A-Za-z]{3,})\s*W\s*(\d+)/i);
+    if(!m) return;
+    const mon = MONTHS[m[1].slice(0,3).toLowerCase()];
+    if(mon === undefined) return;
+    const wk = parseInt(m[2],10);
+    const d = new Date(today.getFullYear(), mon, 1 + (wk-1)*7);
+    if(d <= today && (bestDate === null || d > bestDate)){ bestDate = d; bestIdx = i; }
+  });
+  return bestIdx;
+}
+
+async function fetchWithTimeout(url, ms){
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), ms);
+  try{
+    return await fetch(url, {cache:'no-store', signal: controller.signal});
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function fetchLiveData(){
+  const errors = [];
+  for(const url of CSV_CANDIDATES){
+    try{
+      const res = await fetchWithTimeout(url, 5000);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const text = await res.text();
+      if(/^\s*<(!DOCTYPE|html)/i.test(text)) throw new Error('dapat halaman HTML, bukan CSV (sheet belum publik)');
+      return buildFromCSV(text);
+    }catch(e){
+      const label = url.includes('allorigins') ? 'allorigins' : url.includes('codetabs') ? 'codetabs' : 'langsung';
+      const msg = (e && e.name === 'AbortError') ? 'timeout' : (e && e.message) || 'gagal';
+      errors.push(label + ': ' + msg);
+    }
+  }
+  // Last resort: JSONP via <script> tag — bypasses fetch/CORS entirely.
+  try{
+    const data = await fetchViaJSONP();
+    return data;
+  }catch(e){
+    errors.push('jsonp: ' + (e && e.message ? e.message : 'gagal'));
+  }
+  throw new Error(errors.join(' | '));
+}
+
+function fetchViaJSONP(){
+  return new Promise((resolve, reject)=>{
+    const cbName = 'gvizCB_' + Date.now();
+    const timer = setTimeout(()=>{ cleanup(); reject(new Error('timeout')); }, 5000);
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = function(resp){
+      try{
+        const rows = resp.table.rows.map(r => r.c.map(c => c ? (c.f !== undefined ? c.f : c.v) : ''));
+        const cols = resp.table.cols.map(c => (c.label || '').trim());
+        const csvLike = [cols, ...rows];
+        const header = cols;
+        const statusColIdx = header.findIndex(h => (h||'').toLowerCase() === 'status');
+        if(statusColIdx < 2){ cleanup(); reject(new Error('kolom Status tidak ditemukan')); return; }
+        const weekHeaders = header.slice(2, statusColIdx).map(h => (h||'').trim()).filter(Boolean);
+        const data = [];
+        let lastProject = '';
+        for(const r of rows){
+          const projectCell = (r[0]||'').toString().trim();
+          const step = (r[1]||'').toString().trim();
+          if(!step) continue;
+          const project = projectCell || lastProject;
+          lastProject = project;
+          let weekIndex = null;
+          for(let w=0; w<weekHeaders.length; w++){
+            const cell = (r[2+w]||'').toString().trim().toLowerCase();
+            if(cell === 'x'){ weekIndex = w; break; }
+          }
+          const status = (r[statusColIdx]||'').toString().trim() || 'Planning';
+          data.push({project, step, weekIndex, status});
+        }
+        cleanup();
+        if(data.length === 0){ reject(new Error('tidak ada baris data')); return; }
+        resolve({ weeks: weekHeaders, data });
+      }catch(err){ cleanup(); reject(err); }
+    };
+    const script = document.createElement('script');
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=0&tqx=out:json;responseHandler=${cbName}`;
+    script.onerror = () => { cleanup(); reject(new Error('script gagal dimuat')); };
+    document.body.appendChild(script);
+  });
+}
+
+function setSyncUI(state, text){
+  const pill = document.getElementById('syncPill'), txt = document.getElementById('syncText');
+  pill.className = 'sync-pill ' + state;
+  txt.textContent = text;
+}
+
+function renderAlert(message){
+  document.getElementById('alertBoxDash').innerHTML = message ? `<div class="alert">${message}</div>` : '';
+}
+
+async function loadData(){
+  document.getElementById('refreshBtn1').disabled = true;
+  setSyncUI('', 'Mengambil data…');
+  try{
+    const {weeks, data} = await fetchLiveData();
+    WEEKS = weeks; DATA = data;
+    currentWeek = Math.min(guessCurrentWeekIndex(WEEKS), WEEKS.length-1);
+    renderAlert(null);
+    setSyncUI('live', 'Live · ' + new Date().toLocaleTimeString('id-ID'));
+    saveCache(WEEKS, DATA);
+  }catch(e){
+    // Keep showing whatever data was already on screen (cache or fallback)
+    // instead of wiping it out just because this refresh attempt failed.
+    setSyncUI('offline', 'Gagal update — menampilkan data sebelumnya');
+    renderAlert('Gagal memuat data terbaru dari spreadsheet. Data yang ditampilkan mungkin belum yang terbaru. Klik Refresh untuk mencoba lagi.<br><span style="font-family:\'IBM Plex Mono\',monospace;font-size:11px;">' + (e && e.message ? e.message : 'error tidak diketahui') + '</span>');
+  }
+  document.getElementById('refreshBtn1').disabled = false;
+  renderAll();
+}
+
+/* ---------- state calc ---------- */
+function computeState(rec){
+  if(rec.status === 'Done') return 'done';
+  if(rec.weekIndex === null || rec.weekIndex === undefined) return 'upcoming';
+  if(rec.weekIndex === currentWeek) return 'due';
+  if(rec.weekIndex < currentWeek) return 'overdue';
+  return 'upcoming';
+}
+const STATE_LABEL = {done:"Selesai", due:"Jatuh tempo", overdue:"Terlambat", upcoming:"Akan datang"};
+
+function groupByProject(rows){
+  const map = new Map();
+  rows.forEach(r=>{ if(!map.has(r.project)) map.set(r.project, []); map.get(r.project).push(r); });
+  return map;
+}
+
+/* ---------- Dashboard render ---------- */
+function renderHead(){
+  const head = document.getElementById('headRow');
+  let html = '<th>Proyek / Action Step</th>';
+  WEEKS.forEach((w,i)=>{ html += `<th class="week-col ${i===currentWeek?'current':''}">${w}</th>`; });
+  html += '<th class="status-col">Status</th>';
+  head.innerHTML = html;
+}
+
+function renderStats(){
+  const states = DATA.map(computeState);
+  const count = s => states.filter(x=>x===s).length;
+  const done=count('done'), due=count('due'), overdue=count('overdue'), upcoming=count('upcoming');
+  const total = DATA.length;
+  const pct = n => total ? Math.round(n/total*100) : 0;
+  document.getElementById('statStrip').innerHTML = `
+    <div class="stat total"><div class="num">${total}</div><div class="lbl">Total action step</div></div>
+    <div class="stat done"><div class="num">${done} <span style="font-size:14px;color:var(--text-faint)">(${pct(done)}%)</span></div><div class="lbl">Selesai</div></div>
+    <div class="stat overdue"><div class="num">${overdue}</div><div class="lbl">Terlambat</div></div>
+    <div class="stat due"><div class="num">${due}</div><div class="lbl">Jatuh tempo minggu ini</div></div>
+    <div class="stat upcoming"><div class="num">${upcoming}</div><div class="lbl">Akan datang</div></div>
+  `;
+}
+
+function renderWeekSelect(){
+  const sel = document.getElementById('weekRef');
+  sel.innerHTML = WEEKS.map((w,i)=>`<option value="${i}" ${i===currentWeek?'selected':''}>Evaluasi per: ${w}</option>`).join('');
+  sel.onchange = e => { currentWeek = parseInt(e.target.value,10); renderStats(); renderHead(); renderBoard(); };
+}
+
+function renderBoard(){
+  const body = document.getElementById('boardBody');
+  const filtered = DATA.filter(r=>{
+    const state = computeState(r);
+    if(statusFilter !== "all" && state !== statusFilter) return false;
+    if(searchTerm){ const hay = (r.project+" "+r.step).toLowerCase(); if(!hay.includes(searchTerm)) return false; }
+    return true;
+  });
+  if(filtered.length === 0){
+    body.innerHTML = `<tr><td colspan="${WEEKS.length+2}"><div class="empty-state">Tidak ada action step yang cocok.</div></td></tr>`;
+    return;
+  }
+  const groups = groupByProject(filtered);
+  let html = '';
+  groups.forEach((rows, project)=>{
+    const doneCount = rows.filter(r=>r.status==="Done").length;
+    html += `<tr class="group-row"><td colspan="${WEEKS.length+2}">${project}<span class="mini">${doneCount}/${rows.length} selesai</span></td></tr>`;
+    rows.forEach(r=>{
+      const state = computeState(r);
+      html += '<tr class="row"><td>'+r.step+'</td>';
+      WEEKS.forEach((w,i)=>{
+        const isCurrent = i===currentWeek;
+        html += (i===r.weekIndex)
+          ? `<td class="week-col ${isCurrent?'current':''}"><span class="mark ${state}"></span></td>`
+          : `<td class="week-col ${isCurrent?'current':''}"></td>`;
+      });
+      html += `<td class="status-col"><span class="pill ${state}">${STATE_LABEL[state]}</span></td></tr>`;
+    });
+  });
+  body.innerHTML = html;
+}
+
+function renderAll(){
+  renderHead(); renderStats(); renderWeekSelect(); renderBoard();
+}
+
+/* ---------- local cache (so last successful live pull persists across reloads) ---------- */
+async function saveCache(weeks, data){
+  try{
+    if(window.storage){
+      await window.storage.set('cachedSheetData', JSON.stringify({weeks, data, ts: Date.now()}), false);
+    }
+  }catch(e){}
+}
+async function loadCache(){
+  try{
+    if(window.storage){
+      const r = await window.storage.get('cachedSheetData', false);
+      if(r && r.value) return JSON.parse(r.value);
+    }
+  }catch(e){}
+  return null;
+}
+
+/* ---------- wiring ---------- */
+document.getElementById('refreshBtn1').onclick = loadData;
+document.getElementById('statusFilter').onchange = e => { statusFilter = e.target.value; renderBoard(); };
+document.getElementById('search').oninput = e => { searchTerm = e.target.value.toLowerCase(); renderBoard(); };
+
+/* ---------- init: show whatever data we have INSTANTLY, no network call ---------- */
+/* Live updates only happen when the user clicks Refresh. */
+(async function init(){
+  const cached = await loadCache();
+  if(cached && cached.weeks && cached.data && cached.data.length){
+    WEEKS = cached.weeks; DATA = cached.data;
+    currentWeek = Math.min(guessCurrentWeekIndex(WEEKS), WEEKS.length - 1);
+    setSyncUI('', 'Data tersimpan · ' + new Date(cached.ts).toLocaleString('id-ID'));
+  } else {
+    setSyncUI('offline', 'Data bawaan — klik Refresh untuk ambil data terbaru');
+  }
+  renderAll();
+})();
+
+</script>
+</body>
+</html>
